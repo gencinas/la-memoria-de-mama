@@ -1,0 +1,10 @@
+Build a memory card matching game called "La memoria de mama" using Next.js and Tailwind CSS, deployable to Vercel.
+How it works: Players flip cards to find matching pairs using their own family photos.
+3 screens:
+1. Home screen — Big centered title "Memory Match". Three large buttons to choose difficulty: "6 pairs", "8 pairs", "10 pairs". A smaller "Manage Photos" link at the bottom. Clean white background, no distractions.
+2. Game screen — Shows cards in a responsive grid (2 columns on mobile, 3-4 on tablet/iPad). Cards are large with rounded corners. The back of each card shows a soft color with a "?" symbol. Tapping a card flips it to show the photo. If two flipped cards match, they stay face-up with a green border. If they don't match, they flip back after 1 second. When all pairs are found, show a big friendly "You did it! 🎉" message with a "Play Again" button and a "Go Home" button. No timer, no score counter — just the game.
+3. Manage Photos screen — A grid showing all uploaded photos with an X button to delete each one. A large upload area (drag & drop or tap to browse) that accepts JPG/PNG images. A label under each photo showing its name. Save everything to localStorage as base64. When leaving this screen, go back to home.
+Game logic: When the player picks a difficulty (e.g. 8 pairs), randomly pick 8 photos from the saved ones, duplicate them to make 16 cards, shuffle them, and display the grid. If fewer photos than pairs are saved, show a friendly message: "Add more photos in Manage Photos to play with X pairs."
+Design requirements: Extra-large cards (minimum 120px × 120px), large fonts (minimum 20px), high contrast, no animations longer than 0.4s, works perfectly on iPad in both portrait and landscape. Simple sans-serif font. Gentle flip animation on cards using CSS transform.
+Storage: All photos stored in localStorage as base64 strings. No backend, no database, no login needed.
+Add a vercel.json file and make sure the project is ready to deploy with vercel --prod.
