@@ -9,29 +9,63 @@ interface Photo {
   data: string;
 }
 
+const MAX_SIZE = 400; // px — enough for cards, keeps storage small
+const QUALITY = 0.82;
+
+function compressImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, MAX_SIZE / Math.max(img.width, img.height));
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d")!;
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", QUALITY));
+      };
+      img.onerror = reject;
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function ManagePhotos() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [dragging, setDragging] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const raw = localStorage.getItem("memoria_photos");
     if (raw) setPhotos(JSON.parse(raw));
   }, []);
 
-  const save = (updated: Photo[]) => {
-    setPhotos(updated);
-    localStorage.setItem("memoria_photos", JSON.stringify(updated));
+  const saveToStorage = (updated: Photo[]) => {
+    try {
+      localStorage.setItem("memoria_photos", JSON.stringify(updated));
+      setError("");
+      return true;
+    } catch {
+      setError("Storage full — please delete some photos to add more.");
+      return false;
+    }
   };
 
-  const handleFiles = (files: FileList | null) => {
+  const handleFiles = async (files: FileList | null) => {
     if (!files) return;
-    Array.from(files).forEach((file) => {
-      if (!file.type.startsWith("image/")) return;
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const data = e.target?.result as string;
+    setError("");
+    for (const file of Array.from(files)) {
+      if (!file.type.startsWith("image/")) continue;
+      try {
+        const data = await compressImage(file);
         const newPhoto: Photo = {
           id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
           name: file.name.replace(/\.[^.]+$/, ""),
@@ -39,16 +73,19 @@ export default function ManagePhotos() {
         };
         setPhotos((prev) => {
           const updated = [...prev, newPhoto];
-          localStorage.setItem("memoria_photos", JSON.stringify(updated));
+          saveToStorage(updated);
           return updated;
         });
-      };
-      reader.readAsDataURL(file);
-    });
+      } catch {
+        setError("Could not load one of the images. Try a different file.");
+      }
+    }
   };
 
   const deletePhoto = (id: string) => {
-    save(photos.filter((p) => p.id !== id));
+    const updated = photos.filter((p) => p.id !== id);
+    setPhotos(updated);
+    saveToStorage(updated);
   };
 
   return (
@@ -63,6 +100,13 @@ export default function ManagePhotos() {
             ← Home
           </button>
         </div>
+
+        {/* Error banner */}
+        {error && (
+          <div className="mb-6 rounded-2xl bg-red-50 border border-red-200 px-5 py-4 text-red-700 text-lg font-medium">
+            {error}
+          </div>
+        )}
 
         {/* Upload area */}
         <div
